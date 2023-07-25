@@ -23,6 +23,7 @@ class ReplayBuffer:
         self.ptr, self.size, self.max_size = 0, 0, size
 
     def store(self, obs, act, rew, next_obs, done):
+        # print('obs_dim1',obs.shape)
         self.obs_buf[self.ptr] = obs
         self.obs2_buf[self.ptr] = next_obs
         self.act_buf[self.ptr] = act
@@ -45,7 +46,7 @@ class ReplayBuffer:
 def sac(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0, 
         steps_per_epoch=4000, epochs=100, replay_size=int(1e6), gamma=0.99, 
         polyak=0.995, lr=1e-3, alpha=0.2, batch_size=100, start_steps=10000, 
-        update_after=1000, update_every=50, num_test_episodes=10, max_ep_len=1000, 
+        update_after=1000, update_every=10, num_test_episodes=100, max_ep_len=3000, 
         logger_kwargs=dict(), save_freq=1):
     """
     Soft Actor-Critic (SAC)
@@ -149,11 +150,14 @@ def sac(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
 
     torch.manual_seed(seed)
     np.random.seed(seed)
-
+    
+     
     env, test_env = env_fn(), env_fn()
+    # env = env_fn()
     obs_dim = env.observation_space.shape
     act_dim = env.action_space.shape[0]
-
+    # print(1.111111111111111111111111111111111111111111111111) 
+    # print('obs_dim2',obs_dim)
     # Action limit for clamping: critically, assumes all dimensions share the same bound!
     act_limit = env.action_space.high[0]
 
@@ -276,6 +280,7 @@ def sac(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
                 ep_ret += r
                 ep_len += 1
             logger.store(TestEpRet=ep_ret, TestEpLen=ep_len)
+        print('test')
 
     # Prepare for interaction with environment
     total_steps = steps_per_epoch * epochs
@@ -297,7 +302,7 @@ def sac(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
         o2, r, d, _ = env.step(a)
         ep_ret += r
         ep_len += 1
-
+        # print('o2',o2)
         # Ignore the "done" signal if it comes from hitting the time
         # horizon (that is, when it's an artificial terminal signal
         # that isn't based on the agent's state)
@@ -309,9 +314,10 @@ def sac(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
         # Super critical, easy to overlook step: make sure to update 
         # most recent observation!
         o = o2
-
+        print('ep_len',ep_len)
         # End of trajectory handling
         if d or (ep_len == max_ep_len):
+            print('here?')
             logger.store(EpRet=ep_ret, EpLen=ep_len)
             o, ep_ret, ep_len = env.reset(), 0, 0
 
