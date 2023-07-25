@@ -6,7 +6,7 @@ from spinup.utils.test_policy import load_policy_and_env, run_policy
 import torch
 import os
 
-TRAIN = 1  # 
+TRAIN = 0  # 
 
 # env1 = lambda : env() #
 # env1 = env()

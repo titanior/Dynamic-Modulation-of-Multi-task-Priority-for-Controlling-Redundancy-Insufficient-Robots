@@ -42,8 +42,8 @@ class my_env(gym.Env):
         
         
     def step(self,action):
-        task1,task2 = self.generate_task()
-        
+        task1,task2 =   self.generate_task()
+        action = [1,1,1,0,0,0,0]
         # execute forward
         self.m.update_tasks(task1,task2)
         self.m.update_s(action)
@@ -104,7 +104,7 @@ class my_env(gym.Env):
                 reward += -30
                 done = True 
                 print('joint:',index,'q',q,'joint angle over boundary')
-     
+    
         # draw traj
         self.plant.draw_end_eff()
         self.plant.draw_pan()
@@ -174,11 +174,11 @@ class my_env(gym.Env):
 
         
         # avoid obstacle
-        delta = 0.000
+        delta = 0.0004
         bot_x,bot_y = self.plant.get_pan_position()
         g_x,g_y,ob_x,ob_y = 0,0,0,0
-        Q = 0.7
-        eta = 2
+        Q = 0.8
+        eta = 5
         for ob in self.obs_pos:
             ob_x = ob[0]
             ob_y = ob[1]
@@ -372,8 +372,8 @@ class my_env(gym.Env):
         return pos_list
     
     def generate_obs_new_new(self,num):
-        step_len = 1.4
-        step_num = 7
+        step_len = 1.8
+        step_num = 6
         # generate a list of position
         pos_list = []
         for i in range(step_num):

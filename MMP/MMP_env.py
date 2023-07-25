@@ -21,8 +21,8 @@ class PandaEnv(gym.Env):
     def __init__(self):
         print('ori_initialize')
         # self.step_counter = 0
-        # p.connect(p.GUI)
-        p.connect(p.DIRECT)
+        p.connect(p.GUI)
+        # p.connect(p.DIRECT)
         p.resetDebugVisualizerCamera(cameraDistance=1.5, cameraYaw=0, cameraPitch=-40,
                                      cameraTargetPosition=[0.55, -0.35, 0.2])
         self.action_space = spaces.Box(np.array([0] * 9), np.array([3] * 9))
