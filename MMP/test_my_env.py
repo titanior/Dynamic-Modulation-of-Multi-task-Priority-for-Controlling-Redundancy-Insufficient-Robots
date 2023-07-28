@@ -3,7 +3,7 @@ import numpy as np
 env = my_env()
 env.render()
 env.reset()
-s = [1,1,1,0,0,0,0]
+s = [1,1,1,1,1,1,0]
 for _ in range(10000):
     env.step(s)
     # env.plant.draw_pan()

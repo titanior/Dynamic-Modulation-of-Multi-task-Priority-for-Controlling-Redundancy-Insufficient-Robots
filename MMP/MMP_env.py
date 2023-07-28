@@ -19,7 +19,7 @@ class PandaEnv(gym.Env):
     metadata = {'render.modes': ['human']}
 
     def __init__(self):
-        print('ori_initialize')
+        # print('ori_initialize')
         # self.step_counter = 0
         p.connect(p.GUI)
         # p.connect(p.DIRECT)
@@ -31,7 +31,7 @@ class PandaEnv(gym.Env):
         self.ur5EndEffectorIndex = 11
         self.last_link_trn_end = None
         self.last_link_trn_pan = None
-        print('ori_initialize')
+        # print('ori_initialize')
     def step(self, action):
         p.configureDebugVisualizer(p.COV_ENABLE_SINGLE_STEP_RENDERING)
 

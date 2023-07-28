@@ -42,7 +42,7 @@ class task_modulator():
         gamma = 0.8
         d = 0.1
         k = 50
-        dt = 1/240
+        dt = 0.5
         # if self.end == 0:
         #     dt = 0
         #     print('iniiiiiiiitialize')
@@ -71,8 +71,7 @@ class task_modulator():
             # print('x_s',self.x_S)
             # for i,task in enumerate(self.x_S):
             #     self.S[i][i] = 1.0/(1+math.exp(k*(d+task)))+1.0/(1+math.exp(k*(d-task)))
-            #     i=+1
-            #     print(1/(1+math.exp(k*(d+0)))+1/(1+math.exp(k*(d-0))))
+                # print(1/(1+math.exp(k*(d+0)))+1/(1+math.exp(k*(d-0))))
             # print('S:',self.S)
             # update P
             for i,p_i in enumerate(self.P):
@@ -141,16 +140,16 @@ class task_modulator():
         J_sub = np.array(self.J_sub)
         x_S = np.array(self.x_S)
         # merge 
-        print('x_2:',self.dot([self.A,x_S]))
+        # print('x_2:',self.dot([self.A,x_S]))
         N1 = np.eye(J_sub.shape[1]) - self.dot([pinv(self.jac1),self.jac1])
         # print('N1:',N1)
         # print('J1*N1:',self.dot([self.jac1,N1]))
-        print('A:\n',self.A)
-        print('x_s:',x_S)
+        # print('A:\n',self.A)
+        # print('x_s:',x_S)
         # print('J_sub:',J_sub.shape)
         # print(self.dot([self.A,J_sub,N1,J_sub.T,self.A.T]))
         v,s1,u  = svd(self.jac1)
-        print('svd task1 s:',s1)
+        # print('svd task1 s:',s1)
         self.dot([pinv(self.jac1),self.x1])
         ve = self.dot([pinv(self.jac1),self.x1])+self.dot([
             N1,J_sub.T,self.A.T,
@@ -202,7 +201,7 @@ class task_modulator():
     def dls(self,A):
         # svd
         threshold = 0.008
-        print(A)
+        # print(A)
         u,s,v = svd(A)
         lam = 0.0000001
         S = np.zeros([s.shape[0],s.shape[0]])
@@ -251,8 +250,3 @@ class task_modulator():
         c = np.array([[9,10],[11,12]])
         print(self.dot([a,b,c]))
         print(np.dot(a,np.dot(b,c)))
-
-# e = env()
-# e.reset()
-# t = task_modulator()
-# t.test(e)

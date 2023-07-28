@@ -16,7 +16,7 @@ class my_env(gym.Env):
         self.plant = env1()
         self.m = task_modulator()
         self.action_space = spaces.Box(np.array([0] * self.action_dim), np.array([1] * self.action_dim))
-        self.observation_space = spaces.Box(np.array([-3] * self.action_dim), np.array([3] * self.action_dim))
+        self.observation_space = spaces.Box(np.array([-20] * self.action_dim), np.array([20] * self.action_dim))
         self.plant.reset()
         self.obs_pos = []
         self.task1 = [0,0,0]
@@ -37,19 +37,21 @@ class my_env(gym.Env):
         self.traj_exactness = 0
         self.last_joint_v = []
         self.bound_joints = [6,7,8,9,10]
-        self.bound = [(-3,2,-2.5,1.5),(-3,3,-2.5,2.5),(-3,3,-2.5,2.5),(-3,3,-2.5,2.5),(-3,3,-2.5,2.5)] 
+        self.bound = [(-3,0,-2.5,-0.5),(-3,3,-2.5,2.5),(-3,3,-2.5,2.5),(-3,3,-2.5,2.5),(-3,3,-2.5,2.5)] 
         print('my_initialize')
         
         
     def step(self,action):
+        txt_path = r'./done_return.txt'
+        file = open(txt_path, 'a+')
         task1,task2 =   self.generate_task()
-        action = [1,1,1,0,0,0,0]
         # execute forward
         self.m.update_tasks(task1,task2)
         self.m.update_s(action)
-        # print('x_s:',self.m.x_S)
-        # print('s:',action)
+        print('x_s:',self.m.x_S)
+        print('s:',action)
         ve = self.m.merge(self.plant)
+        print('A:',self.m.A)
         robot_state,_,__,___ = self.plant.step(ve)
 
         # get observation
@@ -65,7 +67,8 @@ class my_env(gym.Env):
             d = math.sqrt((x-pos[0])**2+(y-pos[1])**2)
             if d < 0.5:
                 print('encounter collision')
-                reward += -50
+                file.write('encounter collision\n')
+                reward += -5000
                 done = True
                 break
         ################## traj exactness
@@ -92,7 +95,7 @@ class my_env(gym.Env):
         i_v = int(self.step_count*dt/self.sim_time*self.num_points)
         if i_v > self.num_points - 2:
             done = True 
-            reward += 20
+            reward += 2000
 
         ################## joint bound penalty
         bot_id = self.plant.pandaUid
@@ -101,10 +104,23 @@ class my_env(gym.Env):
             max = self.bound[i][1]
             min = self.bound[i][0]
             if q > max or q < min:
-                reward += -30
+                reward += -2000
                 done = True 
+                file.write('joint:'+str(index)+',q:'+str(q)+'joint angle over boundary\n')
                 print('joint:',index,'q',q,'joint angle over boundary')
-    
+
+        ################ manual guide
+        x_s = np.array(self.m.x_S)
+        s = np.array(action)
+        reward -= ((1-s)*np.abs(x_s)).sum(axis=0)
+
+        # posture exactness
+        # now_posture = self.plant.get_end_posture()
+        # for i,pos_i in enumerate(now_posture):
+        #     reward += -5*np.abs(pos_i - self.des_posture[i])
+            # print('pos_i - now_posture[i]',np.abs(pos_i - self.des_posture[i]))
+
+
         # draw traj
         self.plant.draw_end_eff()
         self.plant.draw_pan()
@@ -113,7 +129,7 @@ class my_env(gym.Env):
         else:
             p.addUserDebugLine(self.des_pt_last,self.des_pt,lineColorRGB=[0,1,0])
             self.des_pt_last = self.des_pt
-
+        file.close()
         return self.observation,reward,done,{}
     
 
@@ -124,7 +140,7 @@ class my_env(gym.Env):
         ret = self.plant.reset()
         # self.obs_pos = self.generate_obs(10)
         # self.observation = np.array(self.m.x_S).astype(np.float32)     
-        self.control_pts = self.pt_gen.get_points(100)
+        self.control_pts = self.pt_gen.get_points(50)
         self.bz = Bezier(self.control_pts,self.num_points)
         self.traj_v = self.bz.get_v(0,self.sim_time)
         # self.traj_v = self.bz.get_v_with_posture(0,self.sim_time)
@@ -148,12 +164,7 @@ class my_env(gym.Env):
         # random sampling of main task
         dt = 1.0/240.0
         i_v = int(self.step_count*dt/self.sim_time*self.num_points)
-        # print('step_count:',self.step_count)
-        # print('i_v:',i_v)
-        # print('len of v:',len(self.traj_v))
         self.task1 = self.traj_v[i_v].copy()
-        # print('traj_v:',self.traj_v[i_v])
-        # print('task1 1.1',self.task1)
         kp = 5
         end_pos = self.plant.get_end_position()
         now_posture = self.plant.get_end_posture()
@@ -171,14 +182,44 @@ class my_env(gym.Env):
         task1 = (self.task1,jac1)
         self.des_pt = self.traj_pts[i_v]
         # print('task1_v',self.task1)
-
         
+
+        ########################
+        # random sampling of main task
+        # dt = 1.0/240.0
+        # i_v = int(self.step_count*dt/self.sim_time*self.num_points)
+        # self.task1 = self.traj_v[i_v].copy()
+        # kp = 5
+        # end_pos = self.plant.get_end_position()
+        # now_posture = self.plant.get_end_posture()
+        # v_posture = []
+        # # self.plant.get_end_posture()
+        # if self.step_count>1:
+        #     self.task1 = (np.array(self.task1) + kp*(np.array(self.des_pt) - np.array(end_pos))).tolist()
+        # v_posture = (5*(-np.array(now_posture)+np.array(self.des_posture))).tolist()
+        # self.step_count += 1
+        # _,__,jac1 = self.plant.get_jacob(11,[0,2])
+        # # _,__,jac1 = self.plant.get_jacob(11,[0,5])
+        # # self.task1 = self.task1 + v_posture
+        # # print('task1 1.2',self.task1)
+        # # self.task1 = [0,0,0,0,0,2]
+        # task1 = (self.task1,jac1)
+        # self.des_pt = self.traj_pts[i_v]
+        # # print('task1_v',self.task1)
+
+        # # keep end posture 
+        # _,__,jac5 = self.plant.get_jacob(11,[3,5])
+        # task5 = (v_posture,jac5)
+        # # print('task5:',task5)
+        ############################
+
         # avoid obstacle
         delta = 0.0004
         bot_x,bot_y = self.plant.get_pan_position()
         g_x,g_y,ob_x,ob_y = 0,0,0,0
         Q = 0.8
-        eta = 5
+        # eta = 5
+        eta = 20
         for ob in self.obs_pos:
             ob_x = ob[0]
             ob_y = ob[1]
@@ -195,15 +236,21 @@ class my_env(gym.Env):
         # print("*******************************")
         _,__,jac2 = self.plant.get_jacob(3,[0,1])
         # g_x,g_y = 0,0 # for test
+        g_x += self.task1[0]
+        g_y += self.task1[1]
         task2 = ([g_x,g_y],jac2)
         # print('task2:',task2)
         # print('g:',(g_x,g_y))
 
 
+        # avoid obstacle version2.0
+
+
+
         # joint position bounds
         bot_id = self.plant.pandaUid
         q_dot = []
-        # q1 = p.getJointState(bot_id, bound_joints[0])[0]
+        q1 = p.getJointState(bot_id, self.bound_joints[0])[0]
         # q2 = p.getJointState(bot_id, bound_joints[1])[0]
         # q3 = p.getJointState(bot_id, bound_joints[2])[0]
         # q1_max = p.getJointInfo(bot_id, bound_joints[2])[8]
@@ -220,14 +267,21 @@ class my_env(gym.Env):
             d = 0
             # print('q',q)
             if q > self.bound[i][3]:
-                d = max - q
-                # Q = max - bound[i][3]
-                # q_dot.append(1/Q - 1/d)
-                q_dot.append(pp*-1/(d*d + delta))
+                if q > self.bound[i][1]:
+                    q_dot.append(-20)
+                else:
+                    d = max - q
+                    Q = max - self.bound[i][3]
+                    q_dot.append(1/Q - 1/d)
+                # q_dot.append(pp*-1/(d*d + delta))
             elif q < self.bound[i][2]:
-                d = q - min
-                # Q = self.bound[i][2] - min
-                q_dot.append(pp*1/(d*d + delta))
+                if q < self.bound[i][0]:
+                    q_dot.append(20)
+                else:
+                    d = q - min
+                    Q = self.bound[i][2] - min
+                    # q_dot.append(pp*1/(d*d + delta))
+                    q_dot.append(1/d - 1/Q)
             else:
                 q_dot.append(0)
         # print('joint_position',self.plant.get_joint_position())
@@ -261,9 +315,6 @@ class my_env(gym.Env):
         _,__,jac4 = self.plant.get_jacob(8,[0,2])
         task4 = ([gd7_x,gd7_y,gd7_z],jac4)
         
-
-
-
         return task1,[task2,task3]
         
 

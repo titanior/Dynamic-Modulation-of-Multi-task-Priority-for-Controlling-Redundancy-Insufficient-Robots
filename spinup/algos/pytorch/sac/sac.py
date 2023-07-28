@@ -47,7 +47,7 @@ def sac(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
         steps_per_epoch=4000, epochs=100, replay_size=int(1e6), gamma=0.99, 
         polyak=0.995, lr=1e-3, alpha=0.2, batch_size=100, start_steps=10000, 
         update_after=1000, update_every=10, num_test_episodes=100, max_ep_len=3000, 
-        logger_kwargs=dict(), save_freq=1):
+        logger_kwargs=dict(), save_freq=1,use_model = False):
     """
     Soft Actor-Critic (SAC)
 
@@ -162,8 +162,14 @@ def sac(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
     act_limit = env.action_space.high[0]
 
     # Create actor-critic module and target networks
-    ac = actor_critic(env.observation_space, env.action_space, **ac_kwargs)
-    ac_targ = deepcopy(ac)
+    if use_model:
+        modle_path = logger_kwargs['output_dir'] + '/pyt_save/model.pt'
+        # print(modle_path)
+        ac = torch.load(modle_path)
+        ac_targ = deepcopy(ac)
+    else:    
+        ac = actor_critic(env.observation_space, env.action_space, **ac_kwargs)
+        ac_targ = deepcopy(ac)
 
     # Freeze target networks with respect to optimizers (only update via polyak averaging)
     for p in ac_targ.parameters():
